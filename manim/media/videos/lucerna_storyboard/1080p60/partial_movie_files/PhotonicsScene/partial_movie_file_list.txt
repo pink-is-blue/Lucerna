@@ -1,0 +1,7 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Users/Sankar Surya/Documents/neuro-magnetometry-gnn/manim/media/videos/lucerna_storyboard/1080p60/partial_movie_files/PhotonicsScene/879347620_744958391_223132457.mp4'
+file 'file:C:/Users/Sankar Surya/Documents/neuro-magnetometry-gnn/manim/media/videos/lucerna_storyboard/1080p60/partial_movie_files/PhotonicsScene/1640534948_3487697805_626618987.mp4'
+file 'file:C:/Users/Sankar Surya/Documents/neuro-magnetometry-gnn/manim/media/videos/lucerna_storyboard/1080p60/partial_movie_files/PhotonicsScene/1640534948_4248234582_1006964194.mp4'
+file 'file:C:/Users/Sankar Surya/Documents/neuro-magnetometry-gnn/manim/media/videos/lucerna_storyboard/1080p60/partial_movie_files/PhotonicsScene/1640534948_3129122953_3293342602.mp4'
+file 'file:C:/Users/Sankar Surya/Documents/neuro-magnetometry-gnn/manim/media/videos/lucerna_storyboard/1080p60/partial_movie_files/PhotonicsScene/1640534948_1025838037_338115523.mp4'
+file 'file:C:/Users/Sankar Surya/Documents/neuro-magnetometry-gnn/manim/media/videos/lucerna_storyboard/1080p60/partial_movie_files/PhotonicsScene/1640534948_1355089197_975264877.mp4'
