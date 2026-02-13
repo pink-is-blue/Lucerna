@@ -8,6 +8,7 @@ import Team from '@/components/Team'
 import ControlPanel from '@/components/ControlPanel'
 import CNNVisualizer3D from '@/components/GNNVisualizer3D'
 import SignalComparison from '@/components/SignalComparison'
+import DooDooModelFrame from '@/components/DooDooModelFrame'
 
 export default function Home() {
   const [noiseLevel, setNoiseLevel] = useState(0.3)
@@ -37,6 +38,8 @@ export default function Home() {
             />
 
             <div className="space-y-8">
+              <DooDooModelFrame />
+
               <div className="glass-dark p-6 rounded-xl">
                 <div className="flex items-center justify-between mb-4">
                   <div>
