@@ -204,7 +204,9 @@ export default function NVCenterViz() {
 
       // Microwave arrows animation
       microwaveGroup.children.forEach((arrow, i) => {
-        ;(arrow.material as THREE.Material).opacity = m * 0.8
+        if (arrow instanceof THREE.Mesh && arrow.material instanceof THREE.MeshStandardMaterial) {
+          arrow.material.opacity = m * 0.8
+        }
         arrow.position.z = Math.sin(animTime * 0.05 + i * Math.PI / 3) * 0.3 * m
       })
 
