@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import * as THREE from 'three'
 import { BufferGeometry, Vector3 } from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 interface StepConfig {
   title: string
@@ -156,6 +157,17 @@ const STEPS: StepConfig[] = [
     ]
   },
   {
+    title: '3D Model Inspection',
+    subtitle: 'Interactive Geometry Review',
+    description: 'Inspect the imported 3D model in real time. Drag to rotate and use the mouse wheel to zoom in and out.',
+    points: [
+      'Left-drag to rotate model',
+      'Mouse wheel to zoom camera',
+      'True mesh + material rendering',
+      'Placed before CNN analysis stage'
+    ]
+  },
+  {
     title: 'AI Analysis',
     subtitle: 'Neural Pattern Recognition',
     description: 'Convolutional neural network (CNN) analyzes magnetic heatmaps to detect neurons and infer current direction fields.',
@@ -177,6 +189,9 @@ export default function LucernaInteractive() {
   const contentGroupRef = useRef<THREE.Group | null>(null)
   const animationIdRef = useRef<number | null>(null)
   const stepAnimatorRef = useRef<((time: number) => void) | null>(null)
+  const currentStepRef = useRef(0)
+  const previousStepRef = useRef(0)
+  const interactiveModelRef = useRef<THREE.Object3D | null>(null)
 
   const step = STEPS[currentStep]
 
@@ -235,6 +250,10 @@ export default function LucernaInteractive() {
     } else if (stepIndex === 12) {
       animator = renderHeatmap(group, renderScene)
     } else if (stepIndex === 13) {
+      animator = renderImportedModel(group, renderScene, (model) => {
+        interactiveModelRef.current = model
+      })
+    } else if (stepIndex === 14) {
       animator = renderAIGraph(group, renderScene)
     }
     stepAnimatorRef.current = animator
@@ -260,6 +279,7 @@ export default function LucernaInteractive() {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setSize(container.clientWidth, container.clientHeight)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+    renderer.domElement.style.touchAction = 'none'
     container.appendChild(renderer.domElement)
     rendererRef.current = renderer
 
@@ -276,6 +296,67 @@ export default function LucernaInteractive() {
 
     renderStepToGroup(0, contentGroup)
     renderScene()
+
+    const orbitState = {
+      dragging: false,
+      lastX: 0,
+      lastY: 0,
+      yaw: 0,
+      pitch: 0,
+      distance: 8,
+    }
+
+    const applyOrbit = () => {
+      const x = orbitState.distance * Math.cos(orbitState.pitch) * Math.sin(orbitState.yaw)
+      const y = orbitState.distance * Math.sin(orbitState.pitch)
+      const z = orbitState.distance * Math.cos(orbitState.pitch) * Math.cos(orbitState.yaw)
+      camera.position.set(x, y, z)
+      camera.lookAt(0, 0, 0)
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (currentStepRef.current !== 13) return
+      orbitState.dragging = true
+      orbitState.lastX = event.clientX
+      orbitState.lastY = event.clientY
+      renderer.domElement.setPointerCapture(event.pointerId)
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!orbitState.dragging || currentStepRef.current !== 13) return
+      const deltaX = event.clientX - orbitState.lastX
+      const deltaY = event.clientY - orbitState.lastY
+      orbitState.lastX = event.clientX
+      orbitState.lastY = event.clientY
+
+      const model = interactiveModelRef.current
+      if (model) {
+        model.rotation.y += deltaX * 0.01
+        model.rotation.x = THREE.MathUtils.clamp(model.rotation.x + deltaY * 0.01, -1.2, 1.2)
+      }
+      renderScene()
+    }
+
+    const handlePointerUp = (event: PointerEvent) => {
+      orbitState.dragging = false
+      if (renderer.domElement.hasPointerCapture(event.pointerId)) {
+        renderer.domElement.releasePointerCapture(event.pointerId)
+      }
+    }
+
+    const handleWheel = (event: WheelEvent) => {
+      if (currentStepRef.current !== 13) return
+      event.preventDefault()
+      orbitState.distance = THREE.MathUtils.clamp(orbitState.distance + event.deltaY * 0.01, 2.5, 20)
+      applyOrbit()
+      renderScene()
+    }
+
+    renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+    renderer.domElement.addEventListener('pointermove', handlePointerMove)
+    renderer.domElement.addEventListener('pointerup', handlePointerUp)
+    renderer.domElement.addEventListener('pointerleave', handlePointerUp)
+    renderer.domElement.addEventListener('wheel', handleWheel, { passive: false })
 
     const animate = (time: number) => {
       animationIdRef.current = requestAnimationFrame(animate)
@@ -306,6 +387,12 @@ export default function LucernaInteractive() {
       if (contentGroupRef.current) {
         clearGroup(contentGroupRef.current)
       }
+      interactiveModelRef.current = null
+      renderer.domElement.removeEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.removeEventListener('pointermove', handlePointerMove)
+      renderer.domElement.removeEventListener('pointerup', handlePointerUp)
+      renderer.domElement.removeEventListener('pointerleave', handlePointerUp)
+      renderer.domElement.removeEventListener('wheel', handleWheel)
       if (renderer.domElement.parentNode === container) {
         container.removeChild(renderer.domElement)
       }
@@ -314,11 +401,23 @@ export default function LucernaInteractive() {
   }, [clearGroup, renderScene, renderStepToGroup])
 
   useEffect(() => {
+    currentStepRef.current = currentStep
+
+    if (previousStepRef.current === 13 && currentStep !== 13) {
+      const camera = cameraRef.current
+      if (camera) {
+        camera.position.set(0, 0, 8)
+        camera.lookAt(0, 0, 0)
+      }
+      interactiveModelRef.current = null
+    }
+
     const group = contentGroupRef.current
     if (!group) return
     clearGroup(group)
     renderStepToGroup(currentStep, group)
     renderScene()
+    previousStepRef.current = currentStep
   }, [clearGroup, currentStep, renderScene, renderStepToGroup])
 
   const nextStep = () => {
@@ -412,7 +511,8 @@ export default function LucernaInteractive() {
                 {currentStep === 10 && 'Optical system with NA ≥ 0.9 collects light efficiently. Dichroic & bandpass filters isolate fluorescence from excitation.'}
                 {currentStep === 11 && 'APD with <100 cps dark count and single-photon sensitivity converts photons to voltage pulses counted in real-time.'}
                 {currentStep === 12 && 'Heatmap created by raster scanning revealing 2D spatial distribution of neural magnetic activity with <1 μm spatial resolution.'}
-                {currentStep === 13 && 'Convolutional neural networks analyze magnetic heatmaps to detect neuron sources and infer current direction fields.'}
+                {currentStep === 13 && 'This frame renders the imported GLB model for user-guided inspection. Drag to rotate and use wheel zoom for closer geometry review.'}
+                {currentStep === 14 && 'Convolutional neural networks analyze magnetic heatmaps to detect neuron sources and infer current direction fields.'}
               </p>
             </div>
           </div>
@@ -1275,6 +1375,85 @@ function renderHeatmap(scene: THREE.Object3D, render: () => void) {
     if (time - lastUpdate > 50) {
       updateHeatmap(time)
       lastUpdate = time
+    }
+  }
+}
+
+function renderImportedModel(
+  scene: THREE.Object3D,
+  render: () => void,
+  setInteractiveModel: (model: THREE.Object3D | null) => void
+) {
+  setInteractiveModel(null)
+
+  const loader = new GLTFLoader()
+  let loadedModel: THREE.Object3D | null = null
+
+  const loadingGeo = new THREE.TorusKnotGeometry(0.9, 0.25, 80, 12)
+  const loadingMat = new THREE.MeshStandardMaterial({
+    color: 0x8b5cf6,
+    emissive: 0x4c1d95,
+    emissiveIntensity: 0.5,
+    metalness: 0.3,
+    roughness: 0.4,
+  })
+  const loadingMesh = new THREE.Mesh(loadingGeo, loadingMat)
+  scene.add(loadingMesh)
+
+  const floor = new THREE.Mesh(
+    new THREE.CircleGeometry(5, 64),
+    new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.1, roughness: 0.9 })
+  )
+  floor.rotation.x = -Math.PI / 2
+  floor.position.y = -2.4
+  scene.add(floor)
+
+  loader.load(
+    './models/doo-doo.glb',
+    (gltf) => {
+      const modelRoot = gltf.scene
+      modelRoot.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+          object.castShadow = true
+          object.receiveShadow = true
+        }
+      })
+
+      const bbox = new THREE.Box3().setFromObject(modelRoot)
+      const size = new THREE.Vector3()
+      const center = new THREE.Vector3()
+      bbox.getSize(size)
+      bbox.getCenter(center)
+
+      modelRoot.position.sub(center)
+      const maxDim = Math.max(size.x, size.y, size.z) || 1
+      const scale = 4.2 / maxDim
+      modelRoot.scale.setScalar(scale)
+      modelRoot.position.y -= 0.4
+
+      scene.remove(loadingMesh)
+      loadingGeo.dispose()
+      loadingMat.dispose()
+
+      scene.add(modelRoot)
+      loadedModel = modelRoot
+      setInteractiveModel(modelRoot)
+      render()
+    },
+    undefined,
+    () => {
+      loadingMat.color = new THREE.Color(0xef4444)
+      loadingMat.emissive = new THREE.Color(0x7f1d1d)
+      render()
+    }
+  )
+
+  render()
+
+  return () => {
+    if (!loadedModel) {
+      loadingMesh.rotation.x += 0.008
+      loadingMesh.rotation.y += 0.012
     }
   }
 }
