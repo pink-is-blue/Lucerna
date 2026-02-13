@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { Line } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -42,7 +42,7 @@ export default function SignalComparison({ noiseLevel, signalIntensity }: Signal
       Math.sin((i / points) * Math.PI * 4) * 50 + 50
     )
 
-    const noisySignal = cleanSignal.map((val, i) =>
+    const noisySignal = cleanSignal.map((val) =>
       val + (Math.random() - 0.5) * noiseLevel * 100 * signalIntensity
     )
 

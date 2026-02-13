@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import * as THREE from 'three'
 import { BufferGeometry, Vector3 } from 'three'
 
@@ -180,15 +180,15 @@ export default function LucernaInteractive() {
 
   const step = STEPS[currentStep]
 
-  const renderScene = () => {
+  const renderScene = useCallback(() => {
     const renderer = rendererRef.current
     const scene = sceneRef.current
     const camera = cameraRef.current
     if (!renderer || !scene || !camera) return
     renderer.render(scene, camera)
-  }
+  }, [])
 
-  const clearGroup = (group: THREE.Group) => {
+  const clearGroup = useCallback((group: THREE.Group) => {
     group.children.forEach((child) => {
       child.traverse((obj) => {
         const mesh = obj as THREE.Mesh
@@ -204,9 +204,9 @@ export default function LucernaInteractive() {
     while (group.children.length > 0) {
       group.remove(group.children[0])
     }
-  }
+  }, [])
 
-  const renderStepToGroup = (stepIndex: number, group: THREE.Group) => {
+  const renderStepToGroup = useCallback((stepIndex: number, group: THREE.Group) => {
     let animator: ((time: number) => void) | null = null
     if (stepIndex === 0) {
       animator = renderNeuronCulture(group, renderScene)
@@ -238,10 +238,11 @@ export default function LucernaInteractive() {
       animator = renderAIGraph(group, renderScene)
     }
     stepAnimatorRef.current = animator
-  }
+  }, [renderScene])
 
   useEffect(() => {
-    if (!containerRef.current) return
+    const container = containerRef.current
+    if (!container) return
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x0a0e27)
@@ -249,7 +250,7 @@ export default function LucernaInteractive() {
 
     const camera = new THREE.PerspectiveCamera(
       75,
-      containerRef.current.clientWidth / containerRef.current.clientHeight,
+      container.clientWidth / container.clientHeight,
       0.1,
       1000
     )
@@ -257,9 +258,9 @@ export default function LucernaInteractive() {
     cameraRef.current = camera
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight)
+    renderer.setSize(container.clientWidth, container.clientHeight)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
-    containerRef.current.appendChild(renderer.domElement)
+    container.appendChild(renderer.domElement)
     rendererRef.current = renderer
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
@@ -273,7 +274,7 @@ export default function LucernaInteractive() {
     scene.add(contentGroup)
     contentGroupRef.current = contentGroup
 
-    renderStepToGroup(currentStep, contentGroup)
+    renderStepToGroup(0, contentGroup)
     renderScene()
 
     const animate = (time: number) => {
@@ -287,9 +288,8 @@ export default function LucernaInteractive() {
     animationIdRef.current = requestAnimationFrame(animate)
 
     const handleResize = () => {
-      if (!containerRef.current) return
-      const width = containerRef.current.clientWidth
-      const height = containerRef.current.clientHeight
+      const width = container.clientWidth
+      const height = container.clientHeight
       camera.aspect = width / height
       camera.updateProjectionMatrix()
       renderer.setSize(width, height)
@@ -306,12 +306,12 @@ export default function LucernaInteractive() {
       if (contentGroupRef.current) {
         clearGroup(contentGroupRef.current)
       }
-      if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
-        containerRef.current.removeChild(renderer.domElement)
+      if (renderer.domElement.parentNode === container) {
+        container.removeChild(renderer.domElement)
       }
       renderer.dispose()
     }
-  }, [])
+  }, [clearGroup, renderScene, renderStepToGroup])
 
   useEffect(() => {
     const group = contentGroupRef.current
@@ -319,7 +319,7 @@ export default function LucernaInteractive() {
     clearGroup(group)
     renderStepToGroup(currentStep, group)
     renderScene()
-  }, [currentStep])
+  }, [clearGroup, currentStep, renderScene, renderStepToGroup])
 
   const nextStep = () => {
     if (currentStep < STEPS.length - 1) {

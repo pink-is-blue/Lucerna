@@ -11,7 +11,8 @@ export default function NVCenterViz() {
   const [step, setStep] = useState(0)
 
   useEffect(() => {
-    if (!containerRef.current) return
+    const container = containerRef.current
+    if (!container) return
 
     // Scene setup
     const scene = new THREE.Scene()
@@ -24,7 +25,7 @@ export default function NVCenterViz() {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.setPixelRatio(window.devicePixelRatio)
-    containerRef.current.appendChild(renderer.domElement)
+    container.appendChild(renderer.domElement)
 
     // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
@@ -151,9 +152,10 @@ export default function NVCenterViz() {
     // Animation loop
     let animTime = 0
     const stepDuration = 100 // frames per step
+    let animationFrameId: number | null = null
 
     const animate = () => {
-      requestAnimationFrame(animate)
+      animationFrameId = requestAnimationFrame(animate)
       animTime++
 
       const currentStep = Math.floor((animTime % (stepDuration * 4)) / stepDuration)
@@ -235,8 +237,11 @@ export default function NVCenterViz() {
 
     return () => {
       window.removeEventListener('resize', handleResize)
-      if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
-        containerRef.current.removeChild(renderer.domElement)
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId)
+      }
+      if (renderer.domElement.parentNode === container) {
+        container.removeChild(renderer.domElement)
       }
       renderer.dispose()
     }
