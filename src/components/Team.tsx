@@ -23,7 +23,7 @@ const teamMembers = [
   },
   {
     name: 'Srihari S',
-    role: '3rd Year MBMS',
+    role: '3rd Year MBBS',
     institution: 'KAP Viswanatham Government Medical College, Trichy',
     contribution: 'Signal processing, data analysis'
   }
